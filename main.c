@@ -169,7 +169,7 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
     if (isValid(Board, Player, col1, row1, col2, row2)) return false;
 
     // Move by 1
-    if(col2-col1 != 1) return false;
+    if(abs(col2-col1) != 1) return false;
 
     // Place on new position 
     Board[col2][row2].color = Player;
@@ -187,7 +187,25 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     int capped_row = row2 - 1;
     int capped_col = col2 - 1;
 
-    
+    // Check if move is valid
+    if (isValid(Board, Player, col1, row1, col2, row2)) return 0;
+
+    // Check if you move by 2
+    if (abs(col2-col1) != 2) return 0;
+
+    //Perform capture
+    Board[capped_row][capped_col].color = NONE;
+    Board[capped_row][capped_row].isKing = false;
+
+    Board[col2][row2].color = Player;
+    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[col2][row2].isKing = true;
+    else Board[row2][col2].isKing = Board[row1][col1].isKing;
+
+    // Remove from old position
+    Board[row1][col1].color = NONE;
+    Board[row1][col1].isKing = false;
+
+    return 1;
 }
 
 //-----------Drawing---------------
