@@ -16,15 +16,15 @@ void must_init(bool test, const char *description)
 }
 
 
-bool collide(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
-{
-    if(ax1 > bx2) return false;
-    if(ax2 < bx1) return false;
-    if(ay1 > by2) return false;
-    if(ay2 < by1) return false;
+// bool collide(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
+// {
+//     if(ax1 > bx2) return false;
+//     if(ax2 < bx1) return false;
+//     if(ay1 > by2) return false;
+//     if(ay2 < by1) return false;
 
-    return true;
-}
+//     return true;
+// }
 
 int max(int a, int b) {
     if (a>b) return a;
@@ -184,8 +184,8 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
 
 // Capture a pawn
 int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
-    int capped_row = row2 - 1;
-    int capped_col = col2 - 1;
+    int capped_row = (row2 + row1) / 2;
+    int capped_col = (col2 + col1) / 2;
 
     // Check if move is valid
     if (isValid(Board, Player, col1, row1, col2, row2)) return 0;
@@ -206,6 +206,43 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     Board[row1][col1].isKing = false;
 
     return 1;
+}
+
+field *double_captures(MAN Board[8][8], int Player, int col, int row) {
+    field *final_fields;
+    final_fields = (field *)malloc(sizeof(field)*4);
+
+    int i = 0;
+
+    // Downright
+    if (isValid(Board, Player, col, row, col+2, row+2)){
+        final_fields[i].col = col + 2;
+        final_fields[i].row = row + 2;
+        i++;
+    }
+    if (isValid(Board, Player, col, row, col-2, row+2)){
+        final_fields[i].col = col - 2;
+        final_fields[i].row = row + 2;
+        i++;
+    }
+    if (isValid(Board, Player, col, row, col-2, row-2)){
+        final_fields[i].col = col - 2;
+        final_fields[i].row = row - 2;
+        i++;
+    }
+    if (isValid(Board, Player, col, row, col+2, row-2)){
+        final_fields[i].col = col + 2;
+        final_fields[i].row = row - 2;
+        i++;
+    }
+    field *return_fields;
+    return_fields = (field *)malloc(sizeof(field)*i);
+
+    for (int j = 0; i<j; j++){
+        return_fields[j] = final_fields[j]; 
+    }
+
+    return return_fields;
 }
 
 //-----------Drawing---------------
