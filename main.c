@@ -263,6 +263,22 @@ void draw_board(MAN board[8][8]) {
             if (board[row][col].color == BLACK) {
                 al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(55, 55, 55));
             }
+            //Drawing crowns for the kings
+            if (board[row][col].color == WHITE && board[row][col].isKing == true) {
+                al_draw_filled_triangle(x + 10, y + 50, x + 25, y + 20, x + 40, y + 50, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 25, y + 50, x + 40, y + 20, x + 55, y + 50, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 40, y + 50, x + 55, y + 20, x + 70, y + 50, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 10, y + 50, x + 24, y + 50, x + 24, y + 20, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 70, y + 50, x + 56, y + 50, x + 56, y + 20, al_map_rgb(200, 200, 200));
+            }
+            if (board[row][col].color == BLACK && board[row][col].isKing == true) {
+                al_draw_filled_triangle(x + 10, y + 50, x + 25, y + 20, x + 40, y + 50, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 25, y + 50, x + 40, y + 20, x + 55, y + 50, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 40, y + 50, x + 55, y + 20, x + 70, y + 50, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 10, y + 50, x + 24, y + 50, x + 24, y + 20, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 70, y + 50, x + 56, y + 50, x + 56, y + 20, al_map_rgb(55, 55, 55));
+            }
+
         }
         // printf("\n");
     };
