@@ -7,9 +7,9 @@
 #include <allegro5/allegro_primitives.h>
 
 // --------------GENERAL--------------
-void must_init(bool test, const char *description)
+void must_init(bool test, const char* description)
 {
-    if(test) return;
+    if (test) return;
 
     printf("couldn't initialize %s\n", description);
     exit(1);
@@ -26,10 +26,10 @@ void must_init(bool test, const char *description)
 //     return true;
 // }
 
-int max(int a, int b) {
-    if (a>b) return a;
-    return b;
-}
+//int max(int a, int b) {
+//    if (a > b) return a;
+//    return b;
+//}
 
 // ------------DISPLAY----------------
 #define BUFFER_W 640
@@ -77,26 +77,27 @@ void disp_post_draw()
 
 void initBoard(MAN Board[8][8])
 {
-    for (int i=0;i<3;i++){
-        for (int j=0;j<8;j += 2){
-            if (i==1) {
+    for (int i = 0;i < 3;i++) {
+        for (int j = 0;j < 8;j += 2) {
+            if (i == 1) {
                 Board[i][j].color = WHITE;
                 Board[i][j].isKing = false;
 
-                Board[7-i][j+1].color=BLACK;
-                Board[7-i][j+1].isKing = false;
-            } else {
-                Board[i][j+1].color = WHITE;
-                Board[i][j+1].isKing = false;
+                Board[7 - i][j + 1].color = BLACK;
+                Board[7 - i][j + 1].isKing = false;
+            }
+            else {
+                Board[i][j + 1].color = WHITE;
+                Board[i][j + 1].isKing = false;
 
-                Board[7-i][j].color=BLACK;
-                Board[7-i][j].isKing = false;
+                Board[7 - i][j].color = BLACK;
+                Board[7 - i][j].isKing = false;
             }
         }
     }
 }
 
-void switchTurn(int* turn){
+void switchTurn(int* turn) {
     *turn = -1 * (*turn);
 }
 
@@ -104,58 +105,59 @@ void switchTurn(int* turn){
 // Checks if a move is valid
 int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
     // Check if not OTB
-    if (col1<0 || col2<0 || row1<0 || row2<0){
+    if (col1 < 0 || col2 < 0 || row1 < 0 || row2 < 0) {
         return false;
     }
-    if (col1>7 || col2>7 || row1>7 || row2>7){
+    if (col1 > 7 || col2 > 7 || row1 > 7 || row2 > 7) {
         return false;
     }
 
     // Check if diffrence between both axes is equal and not grater than 2
-    int xdiff = max(col1-col2,col2-col1);
-    int ydiff = max(row1-row2,row2-row1);
+    int xdiff = abs(col2 - col1);
+    int ydiff = abs(row2 - row1);
 
-    if (xdiff != ydiff || xdiff>2) return false;
+    if (xdiff != ydiff || xdiff > 2) return false;
 
     // Check if theres a MAN on starting pos and no MAN on end pos
     if (Board[row1][col1].color != Player || Board[row2][col2].color != NONE) return false;
 
-    if (Board[row1][col1].isKing){
+    if (Board[row1][col1].isKing) {
         //Takes down
-        if (row2 == row1 +2) {
+        if (row2 == row1 + 2) {
             //Takes left
             if (col2 == col1 - 2) {
-                if (Board[row1+1][col1-1].color == Player || Board[row1+1][col1-1].color == NONE) return false;
+                if (Board[row1 + 1][col1 - 1].color == Player || Board[row1 + 1][col1 - 1].color == NONE) return false;
             }
             //Takes right
             if (col2 == col1 + 2) {
-                if (Board[row1+1][col1+1].color == Player || Board[row1+1][col1+1].color == NONE) return false;
-            }
-        } 
-        // Takes up
-        else if (row2 == row1-2){
-            //Takes left
-            if (col2 == col1 - 2) {
-                if (Board[row1-1][col1-1].color == Player || Board[row1-1][col1-1].color == NONE) return false;
-            }
-            //Takes right
-            if (col2 == col1 + 2) {
-                if (Board[row1-1][col1+1].color == Player || Board[row1-1][col1+1].color == NONE) return false;
+                if (Board[row1 + 1][col1 + 1].color == Player || Board[row1 + 1][col1 + 1].color == NONE) return false;
             }
         }
-    } else { // Normal MAN
-        // Check if correct direction (BLACK ^ | WHITE ↓)
-        if (row2 != row1 + Player || row2 != row1 + (2*Player)) return false;
-
-        // Check if takes
-        if (row2 == row1 + (2*Player)) {
+        // Takes up
+        else if (row2 == row1 - 2) {
             //Takes left
             if (col2 == col1 - 2) {
-                if (Board[row1+Player][col1-1].color == Player || Board[row1+Player][col1-1].color == NONE) return false;
+                if (Board[row1 - 1][col1 - 1].color == Player || Board[row1 - 1][col1 - 1].color == NONE) return false;
             }
             //Takes right
             if (col2 == col1 + 2) {
-                if (Board[row1+Player][col1+1].color == Player || Board[row1+Player][col1+1].color == NONE) return false;
+                if (Board[row1 - 1][col1 + 1].color == Player || Board[row1 - 1][col1 + 1].color == NONE) return false;
+            }
+        }
+    }
+    else { // Normal MAN
+        // Check if correct direction (BLACK ^ | WHITE ↓)
+        if (row2 != row1 + Player || row2 != row1 + (2 * Player)) return false;
+
+        // Check if takes
+        if (row2 == row1 + (2 * Player)) {
+            //Takes left
+            if (col2 == col1 - 2) {
+                if (Board[row1 + Player][col1 - 1].color == Player || Board[row1 + Player][col1 - 1].color == NONE) return false;
+            }
+            //Takes right
+            if (col2 == col1 + 2) {
+                if (Board[row1 + Player][col1 + 1].color == Player || Board[row1 + Player][col1 + 1].color == NONE) return false;
             }
         }
     }
@@ -163,13 +165,13 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
 }
 
 // Move a pawn (no captures)
-int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
+int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
 
     // Check if move is valid
     if (isValid(Board, Player, col1, row1, col2, row2)) return false;
 
     // Move by 1
-    if(abs(col2-col1) != 1) return false;
+    if (abs(col2 - col1) != 1) return false;
 
     // Place on new position 
     Board[col2][row2].color = Player;
@@ -180,10 +182,10 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
     Board[row1][col1].color = NONE;
     Board[row1][col1].isKing = false;
     return 1;
-}  
+}
 
 // Capture a pawn
-int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
+int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
     int capped_row = (row2 + row1) / 2;
     int capped_col = (col2 + col1) / 2;
 
@@ -191,7 +193,7 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     if (isValid(Board, Player, col1, row1, col2, row2)) return 0;
 
     // Check if you move by 2
-    if (abs(col2-col1) != 2) return 0;
+    if (abs(col2 - col1) != 2) return 0;
 
     //Perform capture
     Board[capped_row][capped_col].color = NONE;
@@ -208,38 +210,39 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     return 1;
 }
 
-field *double_captures(MAN Board[8][8], int Player, int col, int row) {
-    field *final_fields;
-    final_fields = (field *)malloc(sizeof(field)*4);
+field* double_captures(MAN Board[8][8], int Player, int col, int row) {
+    field* final_fields;
+    final_fields = (field*)malloc(sizeof(field) * 4);
 
     int i = 0;
 
     // Downright
-    if (isValid(Board, Player, col, row, col+2, row+2)){
-        final_fields[i].col = col + 2;
-        final_fields[i].row = row + 2;
+    // Changed from .col and .row to .y and .x ~ Tomasz
+    if (isValid(Board, Player, col, row, col + 2, row + 2)) {
+        final_fields[i].y = col + 2;
+        final_fields[i].x = row + 2;
         i++;
     }
-    if (isValid(Board, Player, col, row, col-2, row+2)){
-        final_fields[i].col = col - 2;
-        final_fields[i].row = row + 2;
+    if (isValid(Board, Player, col, row, col - 2, row + 2)) {
+        final_fields[i].y = col - 2;
+        final_fields[i].x = row + 2;
         i++;
     }
-    if (isValid(Board, Player, col, row, col-2, row-2)){
-        final_fields[i].col = col - 2;
-        final_fields[i].row = row - 2;
+    if (isValid(Board, Player, col, row, col - 2, row - 2)) {
+        final_fields[i].y = col - 2;
+        final_fields[i].x = row - 2;
         i++;
     }
-    if (isValid(Board, Player, col, row, col+2, row-2)){
-        final_fields[i].col = col + 2;
-        final_fields[i].row = row - 2;
+    if (isValid(Board, Player, col, row, col + 2, row - 2)) {
+        final_fields[i].y = col + 2;
+        final_fields[i].x = row - 2;
         i++;
     }
-    field *return_fields;
-    return_fields = (field *)malloc(sizeof(field)*i);
+    field* return_fields;
+    return_fields = (field*)malloc(sizeof(field) * i);
 
-    for (int j = 0; i<j; j++){
-        return_fields[j] = final_fields[j]; 
+    for (int j = 0; j < i; j++) {
+        return_fields[j] = final_fields[j];
     }
 
     return return_fields;
@@ -247,19 +250,35 @@ field *double_captures(MAN Board[8][8], int Player, int col, int row) {
 
 //-----------Drawing---------------
 
-void draw_board(MAN board[8][8]){
-    for (int row=0; row<8;row++){
-        for (int col=(row+1)%2; col<8;col+=2){
-            int x = (col)*80;
+void draw_board(MAN board[8][8]) {
+    for (int row = 0; row < 8;row++) {
+        for (int col = (row + 1) % 2; col < 8;col += 2) {
+            int x = (col) * 80;
             // printf("%d ",x);
-            int y = row*80;
-            al_draw_filled_rectangle(x, y, x+80, y+80, al_map_rgb_f(0, 0, 0));
-            if (board[row][col].color == WHITE){
-                al_draw_filled_circle(x+40,y+40,35,al_map_rgb(200,200,200));
+            int y = row * 80;
+            al_draw_filled_rectangle(x, y, x + 80, y + 80, al_map_rgb_f(0, 0, 0));
+            if (board[row][col].color == WHITE) {
+                al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(200, 200, 200));
             }
-            if (board[row][col].color == BLACK){
-                al_draw_filled_circle(x+40,y+40,35,al_map_rgb(55,55,55));
+            if (board[row][col].color == BLACK) {
+                al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(55, 55, 55));
             }
+            //Drawing crowns for the kings
+            if (board[row][col].color == WHITE && board[row][col].isKing == true) {
+                al_draw_filled_triangle(x + 10, y + 50, x + 25, y + 20, x + 40, y + 50, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 25, y + 50, x + 40, y + 20, x + 55, y + 50, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 40, y + 50, x + 55, y + 20, x + 70, y + 50, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 10, y + 50, x + 24, y + 50, x + 24, y + 20, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 70, y + 50, x + 56, y + 50, x + 56, y + 20, al_map_rgb(200, 200, 200));
+            }
+            if (board[row][col].color == BLACK && board[row][col].isKing == true) {
+                al_draw_filled_triangle(x + 10, y + 50, x + 25, y + 20, x + 40, y + 50, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 25, y + 50, x + 40, y + 20, x + 55, y + 50, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 40, y + 50, x + 55, y + 20, x + 70, y + 50, al_map_rgb(200, 200, 200));
+                al_draw_filled_triangle(x + 10, y + 50, x + 24, y + 50, x + 24, y + 20, al_map_rgb(55, 55, 55));
+                al_draw_filled_triangle(x + 70, y + 50, x + 56, y + 50, x + 56, y + 20, al_map_rgb(55, 55, 55));
+            }
+
         }
         // printf("\n");
     };
@@ -298,42 +317,42 @@ int main()
 
     al_start_timer(timer);
 
-    while(1)
+    while (1)
     {
         al_wait_for_event(queue, &event);
 
-        switch(event.type)
+        switch (event.type)
         {
-            case ALLEGRO_EVENT_TIMER:
-                break;
-
-
-            case ALLEGRO_EVENT_MOUSE_AXES:
-                // cursour.x = event.mouse.x;
-                // cursour.y = event.mouse.y;
-                redraw = true;
-                break;
-            
-            case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
-                
-                break;
-
-            case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-                
-                break;
-
-            case ALLEGRO_EVENT_DISPLAY_CLOSE:
-                done = true;
-                break;
-        }
-
-        if(done)
+        case ALLEGRO_EVENT_TIMER:
             break;
 
-        if(redraw && al_is_event_queue_empty(queue))
+
+        case ALLEGRO_EVENT_MOUSE_AXES:
+            // cursour.x = event.mouse.x;
+            // cursour.y = event.mouse.y;
+            redraw = true;
+            break;
+
+        case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
+
+            break;
+
+        case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
+
+            break;
+
+        case ALLEGRO_EVENT_DISPLAY_CLOSE:
+            done = true;
+            break;
+        }
+
+        if (done)
+            break;
+
+        if (redraw && al_is_event_queue_empty(queue))
         {
             disp_pre_draw();
-            al_clear_to_color(al_map_rgb(255,255,255));
+            al_clear_to_color(al_map_rgb(255, 255, 255));
             draw_board(Board);
             // draw_cursour(cursour.x,cursour.y);
             disp_post_draw();
