@@ -21,9 +21,8 @@ typedef struct MAN {
 } MAN;
 
 typedef struct field {
-    int x;
-    int y;
-    MAN pawn;
+    int col;
+    int row;
 } field;
 
 // typedef struct Field {

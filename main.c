@@ -217,25 +217,25 @@ field* double_captures(MAN Board[8][8], int Player, int col, int row) {
     int i = 0;
 
     // Downright
-    // Changed from .col and .row to .y and .x ~ Tomasz
+    // Changed from .col and .row to .y and .x ~ Tomasz (Changed it back cos I can read this better))
     if (isValid(Board, Player, col, row, col + 2, row + 2)) {
-        final_fields[i].y = col + 2;
-        final_fields[i].x = row + 2;
+        final_fields[i].row = col + 2;
+        final_fields[i].col = row + 2;
         i++;
     }
     if (isValid(Board, Player, col, row, col - 2, row + 2)) {
-        final_fields[i].y = col - 2;
-        final_fields[i].x = row + 2;
+        final_fields[i].row = col - 2;
+        final_fields[i].col = row + 2;
         i++;
     }
     if (isValid(Board, Player, col, row, col - 2, row - 2)) {
-        final_fields[i].y = col - 2;
-        final_fields[i].x = row - 2;
+        final_fields[i].row = col - 2;
+        final_fields[i].col = row - 2;
         i++;
     }
     if (isValid(Board, Player, col, row, col + 2, row - 2)) {
-        final_fields[i].y = col + 2;
-        final_fields[i].x = row - 2;
+        final_fields[i].row = col + 2;
+        final_fields[i].col = row - 2;
         i++;
     }
     field* return_fields;
