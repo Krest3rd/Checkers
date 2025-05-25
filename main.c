@@ -101,7 +101,6 @@ int initBoard(MAN Board[8][8])
             fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
             Board[row][col].color = color;
             Board[row][col].isKing = isKing;
-            printf("%d %d %d %d\n", row, col, color, isKing);
         }
         fclose(gameSave);
 
@@ -337,6 +336,15 @@ void saveToFile(MAN board[8][8], int turn) {
     }
 
     fclose(gameSave);
+}
+//This function will remove the save file when the game is completed (when someone wins)
+void deleteFile() {
+    if (remove("gameSave.txt") == 0) {
+        printf("File deleted\n");
+    }
+    else {
+        printf("Error: Save File cannot be deleted\n");
+    }
 }
 
 //----------------MAIN-------------
