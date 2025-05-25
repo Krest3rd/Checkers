@@ -5,6 +5,11 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
+//File handling - used later on to check if file exists
+#include <io.h>
+#define F_OK 0
+#define access _access
+#pragma warning(disable:4996)
 
 // --------------GENERAL--------------
 void must_init(bool test, const char* description)
@@ -75,25 +80,56 @@ void disp_post_draw()
 
 //---------------CHECKERS----------
 
-void initBoard(MAN Board[8][8])
+int initBoard(MAN Board[8][8])
 {
-    for (int i = 0;i < 3;i++) {
-        for (int j = 0;j < 8;j += 2) {
-            if (i == 1) {
-                Board[i][j].color = WHITE;
-                Board[i][j].isKing = false;
+    int turn;
+    //First init
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            Board[i][j].color = NONE;
+        }
+    }
 
-                Board[7 - i][j + 1].color = BLACK;
-                Board[7 - i][j + 1].isKing = false;
-            }
-            else {
-                Board[i][j + 1].color = WHITE;
-                Board[i][j + 1].isKing = false;
+    //Checks if file with game save exists
+    if (access("gameSave.txt", F_OK) == 0) {
+        FILE* gameSave = fopen("gameSave.txt", "r");
+        int row, col, color, isKing;
 
-                Board[7 - i][j].color = BLACK;
-                Board[7 - i][j].isKing = false;
+        fscanf(gameSave, "%d", &turn);
+
+        while (!feof(gameSave)) {
+            fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
+            Board[row][col].color = color;
+            Board[row][col].isKing = isKing;
+            printf("%d %d %d %d\n", row, col, color, isKing);
+        }
+        fclose(gameSave);
+
+        return turn;
+    }
+    else {
+
+        for (int i = 0;i < 3;i++) {
+            for (int j = 0;j < 8;j += 2) {
+                if (i == 1) {
+                    Board[i][j].color = WHITE;
+                    Board[i][j].isKing = false;
+
+                    Board[7 - i][j + 1].color = BLACK;
+                    Board[7 - i][j + 1].isKing = false;
+                }
+                else {
+                    Board[i][j + 1].color = WHITE;
+                    Board[i][j + 1].isKing = false;
+
+                    Board[7 - i][j].color = BLACK;
+                    Board[7 - i][j].isKing = false;
+                }
             }
         }
+
+        turn = BLACK;
+        return turn;
     }
 }
 
@@ -288,6 +324,9 @@ void saveToFile(MAN board[8][8], int turn) {
     //Saving the state of the game to gameSave.txt file
     FILE* gameSave = fopen("gameSave.txt", "w");
 
+    //First line tells which turn it is
+    fprintf(gameSave, "%d\n", turn);
+
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
             if (abs(board[i][j].color) == 1) {
@@ -296,8 +335,6 @@ void saveToFile(MAN board[8][8], int turn) {
             }
         }
     }
-    //Last entry tells which turn it is 
-    fprintf(gameSave, "%d", turn);
 
     fclose(gameSave);
 }
@@ -330,8 +367,7 @@ int main()
     ALLEGRO_EVENT event;
 
     MAN Board[8][8];
-    initBoard(Board);
-    int turn = BLACK;
+    int turn = initBoard(Board);
 
     saveToFile(Board, turn);
 
