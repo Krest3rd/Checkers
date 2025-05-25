@@ -284,6 +284,24 @@ void draw_board(MAN board[8][8]) {
     };
 }
 
+void saveToFile(MAN board[8][8], int turn) {
+    //Saving the state of the game to gameSave.txt file
+    FILE* gameSave = fopen("gameSave.txt", "w");
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (abs(board[i][j].color) == 1) {
+                //Format of the save file is {row} {column} {color} {isKing}
+                fprintf(gameSave, "%d %d %d %d\n", i, j, board[i][j].color, board[i][j].isKing);
+            }
+        }
+    }
+    //Last entry tells which turn it is 
+    fprintf(gameSave, "%d", turn);
+
+    fclose(gameSave);
+}
+
 //----------------MAIN-------------
 int main()
 {
@@ -315,21 +333,7 @@ int main()
     initBoard(Board);
     int turn = BLACK;
 
-    //Saving the state of the game to gameSave.txt file
-    FILE* gameSave = fopen("gameSave.txt", "w");
-
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            if (abs(Board[i][j].color) == 1) {
-                //Format of the save file is {row} {column} {color} {isKing}
-                fprintf(gameSave, "%d %d %d %d\n", i, j, Board[i][j].color, Board[i][j].isKing);
-            }
-        }
-    }
-    //Last entry tells which turn it is 
-    fprintf(gameSave, "%d", turn);
-
-    fclose(gameSave);
+    saveToFile(Board, turn);
 
     al_start_timer(timer);
 
@@ -369,6 +373,7 @@ int main()
         {
             disp_pre_draw();
             al_clear_to_color(al_map_rgb(255, 255, 255));
+            saveToFile(Board, turn);
             draw_board(Board);
             // draw_cursour(cursour.x,cursour.y);
             disp_post_draw();
