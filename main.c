@@ -315,6 +315,22 @@ int main()
     initBoard(Board);
     int turn = BLACK;
 
+    //Saving the state of the game to gameSave.txt file
+    FILE* gameSave = fopen("gameSave.txt", "w");
+
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (abs(Board[i][j].color) == 1) {
+                //Format of the save file is {row} {column} {color} {isKing}
+                fprintf(gameSave, "%d %d %d %d\n", i, j, Board[i][j].color, Board[i][j].isKing);
+            }
+        }
+    }
+    //Last entry tells which turn it is 
+    fprintf(gameSave, "%d", turn);
+
+    fclose(gameSave);
+
     al_start_timer(timer);
 
     while (1)
