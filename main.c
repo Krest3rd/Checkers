@@ -6,10 +6,10 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 //File handling - used later on to check if file exists (works on Windows)
-#include <io.h> // This is Winndows specific so I can't test for now
-#define F_OK 0
-#define access _access
-#pragma warning(disable:4996)
+// #include <io.h> // This is Winndows specific so I can't test for now
+// #define F_OK 0
+// #define access _access
+// #pragma warning(disable:4996)
 
 // --------------GENERAL--------------
 void must_init(bool test, const char* description)
@@ -133,6 +133,7 @@ int initBoard(MAN Board[8][8])
 }
 
 void switchTurn(int* turn) {
+    printf("Switching turn from %d to %d\n", *turn, -1 * (*turn));
     *turn = -1 * (*turn);
 }
 
@@ -322,7 +323,7 @@ int hasMoves(MAN Board[8][8], int Player) {
 }
 //-----------Drawing---------------
 
-void draw_board(MAN board[8][8]) {
+void draw_board(MAN board[8][8],field selected) {
     for (int row = 0; row < 8;row++) {
         for (int col = (row + 1) % 2; col < 8;col += 2) {
             int x = (col) * 80;
@@ -352,6 +353,10 @@ void draw_board(MAN board[8][8]) {
             }
 
         }
+        if (selected.col != -1 && selected.row != -1) {
+            // Draw a rectangle around the selected field
+            al_draw_rectangle(selected.col * 80, selected.row * 80, selected.col * 80 + 80, selected.row * 80 + 80, al_map_rgb(255, 0, 0), 5);
+        }
         // printf("\n");
     };
 }
@@ -359,12 +364,15 @@ void draw_board(MAN board[8][8]) {
 //-----------Input--------------
 
 int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
+    printf("Performing move from (%d, %d) to (%d, %d) for player %d\n", col1, row1, col2, row2, Player);
     if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && move(Board, Player, col1, row1, col2, row2)) {
         // Normal move
+        printf("Normal move performed\n");
         return true;
     }
     else if (abs(col2 - col1) == 2 && abs(row2 - row1) == 2 && capture(Board, Player, col1, row1, col2, row2)) {
         // Capture return 2
+        printf("Capture performed\n");
         return 2;
     }
     else {
@@ -411,7 +419,7 @@ int main()
     must_init(al_init(), "allegro");
     must_init(al_install_keyboard(), "keyboard");
 
-    ALLEGRO_TIMER* timer = al_create_timer(1.0 / 200.0);
+    ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0);
     must_init(timer, "timer");
 
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
@@ -434,7 +442,9 @@ int main()
 
     MAN Board[8][8];
     int turn = initBoard(Board);
-
+    field selected;
+    selected.col = -1;
+    selected.row = -1;
     saveToFile(Board, turn);
 
     al_start_timer(timer);
@@ -456,7 +466,47 @@ int main()
             break;
 
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
-
+            if (event.mouse.button == 1) // Left mouse button
+            {
+                if (selected.col == -1 || selected.row == -1) {
+                    // Select a field
+                    selected.col = event.mouse.x / 80;
+                    selected.row = event.mouse.y / 80;
+                } else {
+                    int result = PerformMove(Board, turn, selected.col, selected.row, event.mouse.x / 80, event.mouse.y / 80);
+                    if (result != false) {
+                    // If result is true, it was a normal move
+                    // If result is 2, it was a capture
+                        if (result == 2) {
+                            // Check if player has any captures left
+                            if (hasCapt(Board, turn)) {
+                                // Player has captures left, so he can continue capturing
+                                selected.col = event.mouse.x / 80;
+                                selected.row = event.mouse.y / 80;
+                            } else {
+                                // Player has no captures left, so switch turn
+                                switchTurn(&turn);
+                                selected.col = -1;
+                                selected.row = -1;
+                            }
+                        } else {
+                            // Normal move, switch turn
+                            switchTurn(&turn);
+                            selected.col = -1;
+                            selected.row = -1;
+                        }
+                    } else {
+                        selected.col = event.mouse.x / 80;
+                        selected.row = event.mouse.y / 80;
+                    }
+                }
+            }
+            else if (event.mouse.button == 2) // Right mouse button
+            {
+                // Deselect the field
+                selected.col = -1;
+                selected.row = -1;
+            }    
             break;
 
         case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
@@ -476,7 +526,7 @@ int main()
             disp_pre_draw();
             al_clear_to_color(al_map_rgb(255, 255, 255));
             saveToFile(Board, turn);
-            draw_board(Board);
+            draw_board(Board,selected);
             // draw_cursour(cursour.x,cursour.y);
             disp_post_draw();
             redraw = false;
