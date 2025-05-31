@@ -147,15 +147,18 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     if (col1 > 7 || col2 > 7 || row1 > 7 || row2 > 7) {
         return false;
     }
-
+    
     // Check if diffrence between both axes is equal and not grater than 2
     int xdiff = abs(col2 - col1);
     int ydiff = abs(row2 - row1);
 
     if (xdiff != ydiff || xdiff > 2) return false;
+    
+    // Check if player is trying to move someone else's pawn
+    if (Board[row1][col1].color != Player) return false;
 
-    // Check if theres a MAN on starting pos and no MAN on end pos
-    if (Board[row1][col1].color != Player || Board[row2][col2].color != NONE) return false;
+    // Check if theres no MAN on end pos
+    if (Board[row2][col2].color != NONE) return false;
 
     if (Board[row1][col1].isKing) {
         //Takes down
@@ -183,8 +186,7 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     }
     else { // Normal MAN
         // Check if correct direction (BLACK ^ | WHITE ↓)
-        if (row2 != row1 + Player || row2 != row1 + (2 * Player)) return false;
-
+        if (row2 != row1 + Player && row2 != row1 + (2 * Player)) return false;
         // Check if takes
         if (row2 == row1 + (2 * Player)) {
             //Takes left
@@ -197,14 +199,15 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
             }
         }
     }
+    printf("TRUE\n");
     return true;
 }
 
 // Move a pawn (no captures)
 int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
-
+    printf("Moving from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
     // Check if move is valid
-    if (isValid(Board, Player, col1, row1, col2, row2)) return false;
+    if (isValid(Board, Player, col1, row1, col2, row2) == 0) return false;
 
     // Move by 1
     if (abs(col2 - col1) != 1) return false;
@@ -228,7 +231,7 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     int capped_col = (col2 + col1) / 2;
 
     // Check if move is valid
-    if (isValid(Board, Player, col1, row1, col2, row2)) return 0;
+    if (isValid(Board, Player, col1, row1, col2, row2) == 0) return 0;
 
     // Check if you move by 2
     if (abs(col2 - col1) != 2) return 0;
@@ -237,8 +240,8 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     Board[capped_row][capped_col].color = NONE;
     Board[capped_row][capped_row].isKing = false;
 
-    Board[col2][row2].color = Player;
-    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[col2][row2].isKing = true;
+    Board[row2][col2].color = Player;
+    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[row2][col2].isKing = true;
     else Board[row2][col2].isKing = Board[row1][col1].isKing;
 
     // Remove from old position
@@ -248,42 +251,24 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     return 1;
 }
 
-field* double_captures(MAN Board[8][8], int Player, int col, int row) {
-    field* final_fields;
-    final_fields = (field*)malloc(sizeof(field) * 4);
 
-    int i = 0;
-
+// TODO: Probably re write this function to check if possible without returning fields
+int captures(MAN Board[8][8], int Player, int col, int row) {
     // Downright
     // Changed from .col and .row to .y and .x ~ Tomasz (Changed it back cos I can read this better))
-    if (isValid(Board, Player, col, row, col + 2, row + 2)) {
-        final_fields[i].row = col + 2;
-        final_fields[i].col = row + 2;
-        i++;
+    if (isValid(Board, Player, col, row, col + 2, row + 2) == 1) {
+        return true;
     }
-    if (isValid(Board, Player, col, row, col - 2, row + 2)) {
-        final_fields[i].row = col - 2;
-        final_fields[i].col = row + 2;
-        i++;
+    if (isValid(Board, Player, col, row, col - 2, row + 2) == 1) {
+        return true;
     }
-    if (isValid(Board, Player, col, row, col - 2, row - 2)) {
-        final_fields[i].row = col - 2;
-        final_fields[i].col = row - 2;
-        i++;
+    if (isValid(Board, Player, col, row, col - 2, row - 2) == 1) {
+        return true;
     }
-    if (isValid(Board, Player, col, row, col + 2, row - 2)) {
-        final_fields[i].row = col + 2;
-        final_fields[i].col = row - 2;
-        i++;
+    if (isValid(Board, Player, col, row, col + 2, row - 2) == 1) {
+        return true;
     }
-    field* return_fields;
-    return_fields = (field*)malloc(sizeof(field) * i);
-
-    for (int j = 0; j < i; j++) {
-        return_fields[j] = final_fields[j];
-    }
-
-    return return_fields;
+    return false;
 }
 
 // Checks if player has any captures
@@ -291,9 +276,8 @@ int hasCapt(MAN Board[8][8], int Player) {
     for (int row = 0; row < 8; row++) {
         for (int col = (row + 1) % 2; col < 8;col += 2) {
             if (Board[row][col].color == Player) {
-                field* fields = double_captures(Board, Player, col, row);
-                if (fields != NULL) {
-                    free(fields);
+                if (captures(Board, Player, col, row) == 1) {
+                    // Player has captures
                     return true;
                 }
             }
@@ -367,7 +351,7 @@ void draw_board(MAN board[8][8],field selected) {
 
 int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
     printf("Performing move from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
-    if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && move(Board, Player, col1, row1, col2, row2)) {
+    if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && move(Board, Player, col1, row1, col2, row2) && hasCapt(Board, Player) == 0) {
         // Normal move
         printf("Normal move performed\n");
         return true;
