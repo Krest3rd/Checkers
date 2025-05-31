@@ -5,8 +5,8 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
-//File handling - used later on to check if file exists
-#include <io.h>
+//File handling - used later on to check if file exists (works on Windows)
+#include <io.h> // This is Winndows specific so I can't test for now
 #define F_OK 0
 #define access _access
 #pragma warning(disable:4996)
@@ -283,6 +283,43 @@ field* double_captures(MAN Board[8][8], int Player, int col, int row) {
     return return_fields;
 }
 
+// Checks if player has any captures
+int hasCapt(MAN Board[8][8], int Player) {
+    for (int row = 0; row < 8; row++) {
+        for (int col = (row + 1) % 2; col < 8;col += 2) {
+            if (Board[row][col].color == Player) {
+                field* fields = double_captures(Board, Player, col, row);
+                if (fields != NULL) {
+                    free(fields);
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+// Checks if player has any moves (including captures if captures resturns 2)
+int hasMoves(MAN Board[8][8], int Player) {
+    // If player has captures, he cannot move so send out that he has captures
+    if (hasCapt(Board, Player)) return 2;
+    for (int row = 0; row < 8; row++) {
+        for (int col = (row + 1) % 2; col < 8;col += 2) {
+            if (Board[row][col].color == Player) {
+                // Check if player can move by 1 (normal)
+                if (Board[row][col].isKing && isValid(Board, Player, col, row, col + 1, row + Player) || isValid(Board, Player, col, row, col - 1, row + Player)) {
+                    return true;
+                }
+                // Check if player can move by 1 (KING)
+                if (isValid(Board, Player, col, row, col + 1, row + 1) || isValid(Board, Player, col, row, col - 1, row + 1) ||
+                    isValid(Board, Player, col, row, col + 1, row - 1) || isValid(Board, Player, col, row, col - 1, row - 1)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 //-----------Drawing---------------
 
 void draw_board(MAN board[8][8]) {
@@ -319,6 +356,26 @@ void draw_board(MAN board[8][8]) {
     };
 }
 
+//-----------Input--------------
+
+int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
+    if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && move(Board, Player, col1, row1, col2, row2)) {
+        // Normal move
+        return true;
+    }
+    else if (abs(col2 - col1) == 2 && abs(row2 - row1) == 2 && capture(Board, Player, col1, row1, col2, row2)) {
+        // Capture return 2
+        return 2;
+    }
+    else {
+        // Invalid move
+        return false;
+    }
+    
+
+}
+
+//-----------File---------------
 void saveToFile(MAN board[8][8], int turn) {
     //Saving the state of the game to gameSave.txt file
     FILE* gameSave = fopen("gameSave.txt", "w");
@@ -337,6 +394,7 @@ void saveToFile(MAN board[8][8], int turn) {
 
     fclose(gameSave);
 }
+
 //This function will remove the save file when the game is completed (when someone wins)
 void deleteFile() {
     if (remove("gameSave.txt") == 0) {
@@ -388,13 +446,13 @@ int main()
         switch (event.type)
         {
         case ALLEGRO_EVENT_TIMER:
+            redraw = true;
             break;
 
 
         case ALLEGRO_EVENT_MOUSE_AXES:
             // cursour.x = event.mouse.x;
             // cursour.y = event.mouse.y;
-            redraw = true;
             break;
 
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
