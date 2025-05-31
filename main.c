@@ -210,10 +210,12 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
     if (abs(col2 - col1) != 1) return false;
 
     // Place on new position 
-    Board[col2][row2].color = Player;
-    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[col2][row2].isKing = true;
+    printf("Moved to (%d, %d) for player %d\n", row2, col2, Player);
+    Board[row2][col2].color = Player;
+    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[row2][col2].isKing = true;
     else Board[row2][col2].isKing = Board[row1][col1].isKing;
 
+    printf("Removed from (%d, %d)\n", row1, col1);
     // Remove from old position
     Board[row1][col1].color = NONE;
     Board[row1][col1].isKing = false;
@@ -364,7 +366,7 @@ void draw_board(MAN board[8][8],field selected) {
 //-----------Input--------------
 
 int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
-    printf("Performing move from (%d, %d) to (%d, %d) for player %d\n", col1, row1, col2, row2, Player);
+    printf("Performing move from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
     if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && move(Board, Player, col1, row1, col2, row2)) {
         // Normal move
         printf("Normal move performed\n");
@@ -442,6 +444,7 @@ int main()
 
     MAN Board[8][8];
     int turn = initBoard(Board);
+    printf("Game initialized, turn: %d\n", turn);
     field selected;
     selected.col = -1;
     selected.row = -1;
