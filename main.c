@@ -147,19 +147,19 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     if (col1 > 7 || col2 > 7 || row1 > 7 || row2 > 7) {
         return false;
     }
-    
+    printf("One\n");
     // Check if diffrence between both axes is equal and not grater than 2
     int xdiff = abs(col2 - col1);
     int ydiff = abs(row2 - row1);
 
     if (xdiff != ydiff || xdiff > 2) return false;
-    
+    printf("2\n");
     // Check if player is trying to move someone else's pawn
     if (Board[row1][col1].color != Player) return false;
-
+    printf("3\n");
     // Check if theres no MAN on end pos
     if (Board[row2][col2].color != NONE) return false;
-
+    printf("4\n");
     if (Board[row1][col1].isKing) {
         //Takes down
         if (row2 == row1 + 2) {
@@ -227,13 +227,17 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
 
 // Capture a pawn
 int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
+    printf("Capturing from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
     int capped_row = (row2 + row1) / 2;
     int capped_col = (col2 + col1) / 2;
 
     // Check if move is valid
-    if (isValid(Board, Player, col1, row1, col2, row2) == 0) return 0;
-
+    if (isValid(Board, Player, col1, row1, col2, row2) == 0) {
+        printf("Invalid capture move\n");
+        return 0;
+    }
     // Check if you move by 2
+    printf("Checking if move by 2: %d\n", abs(col2 - col1));
     if (abs(col2 - col1) != 2) return 0;
 
     //Perform capture
@@ -351,12 +355,13 @@ void draw_board(MAN board[8][8],field selected) {
 
 int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
     printf("Performing move from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
-    if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && move(Board, Player, col1, row1, col2, row2) && hasCapt(Board, Player) == 0) {
+    printf("Has captures: %d\n", hasCapt(Board, Player));
+    if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && hasCapt(Board, Player) == 0 && move(Board, Player, col1, row1, col2, row2) == true ) {
         // Normal move
         printf("Normal move performed\n");
         return true;
     }
-    else if (abs(col2 - col1) == 2 && abs(row2 - row1) == 2 && capture(Board, Player, col1, row1, col2, row2)) {
+    else if (abs(col2 - col1) == 2 && abs(row2 - row1) == 2 && capture(Board, Player, col1, row1, col2, row2) == true) {
         // Capture return 2
         printf("Capture performed\n");
         return 2;
@@ -460,13 +465,16 @@ int main()
                     selected.col = event.mouse.x / 80;
                     selected.row = event.mouse.y / 80;
                 } else {
-                    int result = PerformMove(Board, turn, selected.col, selected.row, event.mouse.x / 80, event.mouse.y / 80);
+                    int col = event.mouse.x / 80;
+                    int row = event.mouse.y / 80;
+                    int result = PerformMove(Board, turn, selected.col, selected.row, col, row);
+                    printf("Result of move: %d\n", result);
                     if (result != false) {
                     // If result is true, it was a normal move
                     // If result is 2, it was a capture
                         if (result == 2) {
                             // Check if player has any captures left
-                            if (hasCapt(Board, turn)) {
+                            if (captures(Board, turn,col, row)) {
                                 // Player has captures left, so he can continue capturing
                                 selected.col = event.mouse.x / 80;
                                 selected.row = event.mouse.y / 80;
