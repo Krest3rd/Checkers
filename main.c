@@ -132,11 +132,6 @@ int initBoard(MAN Board[8][8])
     }
 }
 
-void switchTurn(int* turn) {
-    printf("Switching turn from %d to %d\n", *turn, -1 * (*turn));
-    *turn = -1 * (*turn);
-}
-
 
 // Checks if a move is valid
 int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
@@ -147,19 +142,19 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     if (col1 > 7 || col2 > 7 || row1 > 7 || row2 > 7) {
         return false;
     }
-    printf("One\n");
+
     // Check if diffrence between both axes is equal and not grater than 2
     int xdiff = abs(col2 - col1);
     int ydiff = abs(row2 - row1);
 
     if (xdiff != ydiff || xdiff > 2) return false;
-    printf("2\n");
+
     // Check if player is trying to move someone else's pawn
     if (Board[row1][col1].color != Player) return false;
-    printf("3\n");
+
     // Check if theres no MAN on end pos
     if (Board[row2][col2].color != NONE) return false;
-    printf("4\n");
+    
     if (Board[row1][col1].isKing) {
         //Takes down
         if (row2 == row1 + 2) {
@@ -199,13 +194,12 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
             }
         }
     }
-    printf("TRUE\n");
+
     return true;
 }
 
 // Move a pawn (no captures)
 int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
-    printf("Moving from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
     // Check if move is valid
     if (isValid(Board, Player, col1, row1, col2, row2) == 0) return false;
 
@@ -213,12 +207,10 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
     if (abs(col2 - col1) != 1) return false;
 
     // Place on new position 
-    printf("Moved to (%d, %d) for player %d\n", row2, col2, Player);
     Board[row2][col2].color = Player;
     if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[row2][col2].isKing = true;
     else Board[row2][col2].isKing = Board[row1][col1].isKing;
 
-    printf("Removed from (%d, %d)\n", row1, col1);
     // Remove from old position
     Board[row1][col1].color = NONE;
     Board[row1][col1].isKing = false;
@@ -227,17 +219,14 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
 
 // Capture a pawn
 int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
-    printf("Capturing from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
     int capped_row = (row2 + row1) / 2;
     int capped_col = (col2 + col1) / 2;
 
     // Check if move is valid
     if (isValid(Board, Player, col1, row1, col2, row2) == 0) {
-        printf("Invalid capture move\n");
         return 0;
     }
     // Check if you move by 2
-    printf("Checking if move by 2: %d\n", abs(col2 - col1));
     if (abs(col2 - col1) != 2) return 0;
 
     //Perform capture
@@ -255,8 +244,7 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
     return 1;
 }
 
-
-// TODO: Probably re write this function to check if possible without returning fields
+// Checks if player can capture from a given position
 int captures(MAN Board[8][8], int Player, int col, int row) {
     // Downright
     // Changed from .col and .row to .y and .x ~ Tomasz (Changed it back cos I can read this better))
@@ -311,6 +299,16 @@ int hasMoves(MAN Board[8][8], int Player) {
     }
     return false;
 }
+
+void switchTurn(MAN Board[8][8],int* turn) {
+    printf("Switching turn from %d to %d\n", *turn, -1 * (*turn));
+    *turn = -1 * (*turn);
+    if (hasMoves(Board, *turn) == 0) {
+        // If player has no moves, he loses
+        printf("Player %d has no moves left, game over!\n", *turn);
+        exit(0);
+    }
+}
 //-----------Drawing---------------
 
 void draw_board(MAN board[8][8],field selected) {
@@ -354,16 +352,12 @@ void draw_board(MAN board[8][8],field selected) {
 //-----------Input--------------
 
 int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
-    printf("Performing move from (%d, %d) to (%d, %d) for player %d\n", row1, col1, row2, col2, Player);
-    printf("Has captures: %d\n", hasCapt(Board, Player));
     if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && hasCapt(Board, Player) == 0 && move(Board, Player, col1, row1, col2, row2) == true ) {
         // Normal move
-        printf("Normal move performed\n");
         return true;
     }
     else if (abs(col2 - col1) == 2 && abs(row2 - row1) == 2 && capture(Board, Player, col1, row1, col2, row2) == true) {
         // Capture return 2
-        printf("Capture performed\n");
         return 2;
     }
     else {
@@ -480,13 +474,13 @@ int main()
                                 selected.row = event.mouse.y / 80;
                             } else {
                                 // Player has no captures left, so switch turn
-                                switchTurn(&turn);
+                                switchTurn(Board,&turn);
                                 selected.col = -1;
                                 selected.row = -1;
                             }
                         } else {
                             // Normal move, switch turn
-                            switchTurn(&turn);
+                            switchTurn(Board,&turn);
                             selected.col = -1;
                             selected.row = -1;
                         }
