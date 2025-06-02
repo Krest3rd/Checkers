@@ -5,414 +5,21 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
+
+#include "display.c"   
+#include "checkers.c" 
 //File handling - used later on to check if file exists (works on Windows)
 //  #include <io.h> // This is Winndows specific so I can't test for now
 //  #define F_OK 0
 //  #define access _access
 //  #pragma warning(disable:4996)
 
-// --------------GENERAL--------------
-void must_init(bool test, const char* description)
-{
-    if (test) return;
 
-    printf("couldn't initialize %s\n", description);
-    exit(1);
-}
-
-
-//-----------File---------------
-void saveToFile(MAN board[BOARD_SIZE][BOARD_SIZE], int turn) {
-    //Saving the state of the game to gameSave.txt file
-    FILE* gameSave = fopen("gameSave.txt", "w");
-
-    //First line tells which turn it is
-    fprintf(gameSave, "%d\n", turn);
-
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for (int j = 0; j < BOARD_SIZE; j++) {
-            if (abs(board[i][j].color) == 1) {
-                //Format of the save file is {row} {column} {color} {isKing}
-                fprintf(gameSave, "%d %d %d %d\n", i, j, board[i][j].color, board[i][j].isKing);
-            }
-        }
-    }
-
-    fclose(gameSave);
-}
-
-int ReadBoard(MAN Board[BOARD_SIZE][BOARD_SIZE], int* turn) {
-    if (access("gameSave.txt", F_OK) == 0) {
-        FILE* gameSave = fopen("gameSave.txt", "r");
-        int row, col, color, isKing;
-
-        fscanf(gameSave, "%d", turn);
-
-        while (!feof(gameSave)) {
-            fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
-            if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE || (color != WHITE && color != BLACK && color != NONE) || (isKing != 0 && isKing != 1) || (color == NONE && isKing == 1)|| (col+row) % 2 != 1) {
-                // Invalid data in the save file ignore enrty
-                continue;
-            }
-            Board[row][col].color = color;
-            Board[row][col].isKing = isKing;
-        }
-        fclose(gameSave);
-
-        return true;
-    }
-    return false;
-}
-
-//This function will remove the save file when the game is completed (when someone wins)
-void deleteFile() {
-    if (remove("gameSave.txt") == 0) {
-        printf("File deleted\n");
-    }
-    else {
-        printf("Error: Save File cannot be deleted\n");
-    }
-}
-
-// ------------DISPLAY----------------
-#define BUFFER_W BOARD_WIDTH + BOARD_X
-#define BUFFER_H BOARD_HEIGHT + BOARD_Y
-
-#define DISP_SCALE 1
-#define DISP_W (BUFFER_W * DISP_SCALE)
-#define DISP_H (BUFFER_H * DISP_SCALE)
-
-ALLEGRO_DISPLAY* disp;
-ALLEGRO_BITMAP* buffer;
-
-void disp_init()
-{
-    // al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_SUGGEST);
-    // al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_SUGGEST);
-
-    disp = al_create_display(DISP_W, DISP_H);
-    must_init(disp, "display");
-
-    buffer = al_create_bitmap(BUFFER_W, BUFFER_H);
-    must_init(buffer, "bitmap buffer");
-}
-
-void disp_deinit()
-{
-    al_destroy_bitmap(buffer);
-    al_destroy_display(disp);
-}
-
-void disp_pre_draw()
-{
-    al_set_target_bitmap(buffer);
-}
-
-void disp_post_draw()
-{
-    al_set_target_backbuffer(disp);
-    al_draw_scaled_bitmap(buffer, 0, 0, BUFFER_W, BUFFER_H, 0, 0, DISP_W, DISP_H, 0);
-
-    al_flip_display();
-}
-
-//---------------CHECKERS----------
-
-int initBoard(MAN Board[BOARD_SIZE][BOARD_SIZE])
-{
-    int turn;
-    //First init
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for (int j = 0; j < BOARD_SIZE; j++) {
-            Board[i][j].color = NONE;
-        }
-    }
-
-    //Checks if file with game save exists
-    if (ReadBoard(Board, &turn) == true) {
-        // If file exists, load the game state
-        return turn;
-    } else {
-        // If file does not exist, initialize the new game board
-
-        for (int i = 0;i < 3;i++) {
-            for (int j = 0;j < BOARD_SIZE;j += 2) {
-                if (i == 1) {
-                    Board[i][j].color = WHITE;
-                    Board[i][j].isKing = false;
-
-                    Board[7 - i][j + 1].color = BLACK;
-                    Board[7 - i][j + 1].isKing = false;
-                }
-                else {
-                    Board[i][j + 1].color = WHITE;
-                    Board[i][j + 1].isKing = false;
-
-                    Board[7 - i][j].color = BLACK;
-                    Board[7 - i][j].isKing = false;
-                }
-            }
-        }
-
-        turn = BLACK;
-        return turn;
-    }
-}
-
-
-// Checks if a move is valid
-int isValid(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2) {
-    // Check if not OTB
-    if (col1 < 0 || col2 < 0 || row1 < 0 || row2 < 0) {
-        return false;
-    }
-    if (col1 > 7 || col2 > 7 || row1 > 7 || row2 > 7) {
-        return false;
-    }
-
-    // Check if diffrence between both axes is equal and not grater than 2
-    int xdiff = abs(col2 - col1);
-    int ydiff = abs(row2 - row1);
-
-    if (xdiff != ydiff || xdiff > 2) return false;
-
-    // Check if player is trying to move someone else's pawn
-    if (Board[row1][col1].color != Player) return false;
-
-    // Check if theres no MAN on end pos
-    if (Board[row2][col2].color != NONE) return false;
-    
-    if (Board[row1][col1].isKing) {
-        //Takes down
-        if (row2 == row1 + 2) {
-            //Takes left
-            if (col2 == col1 - 2) {
-                if (Board[row1 + 1][col1 - 1].color == Player || Board[row1 + 1][col1 - 1].color == NONE) return false;
-            }
-            //Takes right
-            if (col2 == col1 + 2) {
-                if (Board[row1 + 1][col1 + 1].color == Player || Board[row1 + 1][col1 + 1].color == NONE) return false;
-            }
-        }
-        // Takes up
-        else if (row2 == row1 - 2) {
-            //Takes left
-            if (col2 == col1 - 2) {
-                if (Board[row1 - 1][col1 - 1].color == Player || Board[row1 - 1][col1 - 1].color == NONE) return false;
-            }
-            //Takes right
-            if (col2 == col1 + 2) {
-                if (Board[row1 - 1][col1 + 1].color == Player || Board[row1 - 1][col1 + 1].color == NONE) return false;
-            }
-        }
-    }
-    else { // Normal MAN
-        // Check if correct direction (BLACK ^ | WHITE ↓)
-        if (row2 != row1 + Player && row2 != row1 + (2 * Player)) return false;
-        // Check if takes
-        if (row2 == row1 + (2 * Player)) {
-            //Takes left
-            if (col2 == col1 - 2) {
-                if (Board[row1 + Player][col1 - 1].color == Player || Board[row1 + Player][col1 - 1].color == NONE) return false;
-            }
-            //Takes right
-            if (col2 == col1 + 2) {
-                if (Board[row1 + Player][col1 + 1].color == Player || Board[row1 + Player][col1 + 1].color == NONE) return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-// Move a pawn (no captures)
-int move(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2) {
-    // Check if move is valid
-    if (isValid(Board, Player, col1, row1, col2, row2) == 0) return false;
-
-    // Move by 1
-    if (abs(col2 - col1) != 1) return false;
-
-    // Place on new position 
-    Board[row2][col2].color = Player;
-    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[row2][col2].isKing = true;
-    else Board[row2][col2].isKing = Board[row1][col1].isKing;
-
-    // Remove from old position
-    Board[row1][col1].color = NONE;
-    Board[row1][col1].isKing = false;
-    return 1;
-}
-
-// Capture a pawn
-int capture(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2) {
-    int capped_row = (row2 + row1) / 2;
-    int capped_col = (col2 + col1) / 2;
-
-    // Check if move is valid
-    if (isValid(Board, Player, col1, row1, col2, row2) == 0) {
-        return 0;
-    }
-    // Check if you move by 2
-    if (abs(col2 - col1) != 2) return 0;
-
-    //Perform capture
-    Board[capped_row][capped_col].color = NONE;
-    Board[capped_row][capped_row].isKing = false;
-
-    Board[row2][col2].color = Player;
-    if ((row2 == 0 && Player == BLACK) || (row2 == 7 && Player == WHITE)) Board[row2][col2].isKing = true;
-    else Board[row2][col2].isKing = Board[row1][col1].isKing;
-
-    // Remove from old position
-    Board[row1][col1].color = NONE;
-    Board[row1][col1].isKing = false;
-
-    return 1;
-}
-
-// Checks if player can capture from a given position
-int captures(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col, int row) {
-    // Downright
-    // Changed from .col and .row to .y and .x ~ Tomasz (Changed it back cos I can read this better))
-    if (isValid(Board, Player, col, row, col + 2, row + 2) == 1) {
-        return true;
-    }
-    if (isValid(Board, Player, col, row, col - 2, row + 2) == 1) {
-        return true;
-    }
-    if (isValid(Board, Player, col, row, col - 2, row - 2) == 1) {
-        return true;
-    }
-    if (isValid(Board, Player, col, row, col + 2, row - 2) == 1) {
-        return true;
-    }
-    return false;
-}
-
-// Checks if player has any captures
-int hasCapt(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player) {
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = (row + 1) % 2; col < BOARD_SIZE;col += 2) {
-            if (Board[row][col].color == Player) {
-                if (captures(Board, Player, col, row) == 1) {
-                    // Player has captures
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-// Checks if player has any moves (including captures if captures resturns 2)
-int hasMoves(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player) {
-    // If player has captures, he cannot move so send out that he has captures
-    if (hasCapt(Board, Player)) return 2;
-
-    // Check if player has normal moves
-    for (int row = 0; row < BOARD_SIZE; row++) {
-        for (int col = (row + 1) % 2; col < BOARD_SIZE;col += 2) {
-            if (Board[row][col].color == Player) {
-                // Check if player can move by 1 (normal)
-                if (Board[row][col].isKing && isValid(Board, Player, col, row, col + 1, row + Player) || isValid(Board, Player, col, row, col - 1, row + Player)) {
-                    return true;
-                }
-                // Check if player can move by 1 (KING)
-                if (isValid(Board, Player, col, row, col + 1, row + 1) || isValid(Board, Player, col, row, col - 1, row + 1) ||
-                    isValid(Board, Player, col, row, col + 1, row - 1) || isValid(Board, Player, col, row, col - 1, row - 1)) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-void switchTurn(MAN Board[BOARD_SIZE][BOARD_SIZE],int* turn) {
-    *turn = -1 * (*turn);
-    if (hasMoves(Board, *turn) == 0) {
-        // If player has no moves, he loses
-        switch (*turn) {
-            case WHITE:
-                printf("Player WHITE has no moves left, game over!\n");
-                break;
-            case BLACK:
-                printf("Player BLACK has no moves left, game over!\n");
-                break;
-        }
-        deleteFile();
-        exit(0);
-    }
-}
-//-----------Drawing---------------
-
-void draw_board(MAN board[BOARD_SIZE][BOARD_SIZE],field selected) {
-    for (int row = 0; row < BOARD_SIZE;row++) {
-        for (int col = (row + 1) % 2; col < BOARD_SIZE;col += 2) {
-            int x = (col) * BOARD_SQUARE_SIZE;
-            // printf("%d ",x);
-            int y = row * BOARD_SQUARE_SIZE;
-            y = y + BOARD_Y; // Add the offset for the board
-            x = x + BOARD_X; // Add the offset for the board
-            al_draw_filled_rectangle(x, y, x + BOARD_SQUARE_SIZE, y + BOARD_SQUARE_SIZE, al_map_rgb_f(0, 0, 0));
-            if (board[row][col].color == WHITE) {
-                al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(200, 200, 200));
-            }
-            if (board[row][col].color == BLACK) {
-                al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(55, 55, 55));
-            }
-            //Drawing crowns for the kings
-            if (board[row][col].color == WHITE && board[row][col].isKing == true) {
-                al_draw_filled_triangle(x + 10, y + 50, x + 25, y + 20, x + 40, y + 50, al_map_rgb(55, 55, 55));
-                al_draw_filled_triangle(x + 25, y + 50, x + 40, y + 20, x + 55, y + 50, al_map_rgb(55, 55, 55));
-                al_draw_filled_triangle(x + 40, y + 50, x + 55, y + 20, x + 70, y + 50, al_map_rgb(55, 55, 55));
-                al_draw_filled_triangle(x + 10, y + 50, x + 24, y + 50, x + 24, y + 20, al_map_rgb(200, 200, 200));
-                al_draw_filled_triangle(x + 70, y + 50, x + 56, y + 50, x + 56, y + 20, al_map_rgb(200, 200, 200));
-            }
-            if (board[row][col].color == BLACK && board[row][col].isKing == true) {
-                al_draw_filled_triangle(x + 10, y + 50, x + 25, y + 20, x + 40, y + 50, al_map_rgb(200, 200, 200));
-                al_draw_filled_triangle(x + 25, y + 50, x + 40, y + 20, x + 55, y + 50, al_map_rgb(200, 200, 200));
-                al_draw_filled_triangle(x + 40, y + 50, x + 55, y + 20, x + 70, y + 50, al_map_rgb(200, 200, 200));
-                al_draw_filled_triangle(x + 10, y + 50, x + 24, y + 50, x + 24, y + 20, al_map_rgb(55, 55, 55));
-                al_draw_filled_triangle(x + 70, y + 50, x + 56, y + 50, x + 56, y + 20, al_map_rgb(55, 55, 55));
-            }
-
-        }
-        // printf("Selected field: %d %d\n", selected.col, selected.row);
-        if (selected.col != -1 && selected.row != -1) {
-            // printf("x1: %d, y1: %d, x2: %d, y2: %d\n", (selected.col-BOARD_X) * BOARD_SQUARE_SIZE, (selected.row-BOARD_Y) * BOARD_SQUARE_SIZE, (selected.col-BOARD_X) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE, (selected.row-BOARD_Y) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE);
-            // Draw a rectangle around the selected field
-            al_draw_rectangle((selected.col) * BOARD_SQUARE_SIZE + BOARD_X, (selected.row) * BOARD_SQUARE_SIZE+BOARD_Y, (selected.col) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE + BOARD_X, (selected.row) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE+BOARD_Y, al_map_rgb(255, 0, 0), 5);
-        }
-        // printf("\n");
-    };
-}
-
-//-----------Input--------------
-
-int PerformMove(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2){
-    if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && hasCapt(Board, Player) == 0 && move(Board, Player, col1, row1, col2, row2) == true ) {
-        // Normal move
-        return true;
-    }
-    else if (abs(col2 - col1) == 2 && abs(row2 - row1) == 2 && capture(Board, Player, col1, row1, col2, row2) == true) {
-        // Capture return 2
-        return 2;
-    }
-    else {
-        // Invalid move
-        return false;
-    }
-    
-
-}
 
 //----------------MAIN-------------
 int main()
 {
     must_init(al_init(), "allegro");
-    must_init(al_install_keyboard(), "keyboard");
 
     ALLEGRO_TIMER* timer = al_create_timer(1.0 / 60.0);
     must_init(timer, "timer");
@@ -420,11 +27,15 @@ int main()
     ALLEGRO_EVENT_QUEUE* queue = al_create_event_queue();
     must_init(queue, "queue");
 
+    ALLEGRO_FONT* font = al_create_builtin_font();
+
     disp_init();
 
     must_init(al_install_mouse(), "mouse");
 
     must_init(al_init_primitives_addon(), "primitives");
+
+    must_init(al_init_font_addon(), "font addon");
 
     // al_register_event_source(queue, al_get_keyboard_event_source()); Uncomment if you want to use keyboard events
     al_register_event_source(queue, al_get_mouse_event_source());
@@ -437,10 +48,15 @@ int main()
 
     MAN Board[BOARD_SIZE][BOARD_SIZE];
     int turn = initBoard(Board);
-    printf("Game initialized, turn: %d\n", turn);
     field selected;
+    field after_capture;
+    int canCapture = hasCapt(Board, turn);
+    char message[64] = {0}; // Allocate buffer for message
+    int Loser = 0; // Variable to store the winner
     selected.col = -1;
     selected.row = -1;
+    after_capture.col = -1;
+    after_capture.row = -1;
     saveToFile(Board, turn);
 
     al_start_timer(timer);
@@ -462,6 +78,15 @@ int main()
             break;
 
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
+            if (Loser != 0) {
+                deleteFile();
+                turn = initBoard(Board);
+                Loser = 0;
+                canCapture = hasCapt(Board, turn);
+                selected.col = -1;
+                selected.row = -1;
+                break;
+            }
             if (event.mouse.button == 1) // Left mouse button
             {
                 // printf("Selected field: %d %d\n", (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE, (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE);
@@ -481,23 +106,33 @@ int main()
                             // Check if player has any captures left
                             if (captures(Board, turn,col, row)) {
                                 // Player has captures left, so he can continue capturing
-                                selected.col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
-                                selected.row = (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE;
+                                selected.col = col;
+                                selected.row = row;
+                                after_capture.col = col;
+                                after_capture.row = row;
                             } else {
                                 // Player has no captures left, so switch turn
-                                switchTurn(Board,&turn);
+                                Loser = switchTurn(Board,&turn);
+                                canCapture = hasCapt(Board, turn);
                                 selected.col = -1;
                                 selected.row = -1;
                             }
                         } else {
                             // Normal move, switch turn
-                            switchTurn(Board,&turn);
+                            Loser = switchTurn(Board,&turn);
+                            canCapture = hasCapt(Board, turn);
                             selected.col = -1;
                             selected.row = -1;
                         }
                     } else {
-                        selected.col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
-                        selected.row = (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE;
+                        if (after_capture.col != -1 || after_capture.row != -1) {
+                            printf("You can continue capturing!\n");
+                            selected.col = after_capture.col;
+                            selected.row = after_capture.row;
+                        } else{
+                            selected.col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
+                            selected.row = (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE;
+                        }
                     }
                 }
             }
@@ -519,12 +154,33 @@ int main()
             exit(0);
 
         if (redraw && al_is_event_queue_empty(queue))
-        {
+        {   
+
+            int msg_len = 0;
+            switch(turn){
+                case WHITE:
+                    msg_len = sprintf(message, "Turn: WHITE");
+                    break;
+                case BLACK:
+                    msg_len = sprintf(message, "Turn: BLACK");
+                    break;
+            }
+
+            if (canCapture) {
+                msg_len += sprintf(message + msg_len, " | You can capture!");
+            }
+            if (Loser != 0) {
+                if (Loser == WHITE) {
+                    msg_len = sprintf(message, "BLACK wins!");
+                } else if (Loser == BLACK) {
+                    msg_len = sprintf(message, "WHITE wins!");
+                }
+            }
+
             disp_pre_draw();
             al_clear_to_color(al_map_rgb(255, 255, 255));
-            saveToFile(Board, turn);
-            draw_board(Board,selected);
-            // draw_cursour(cursour.x,cursour.y);
+            al_draw_text(font, al_map_rgb(0, 0, 0), 10, 20, 0, message);
+            draw_board(Board,selected,message);
             disp_post_draw();
             redraw = false;
         }
