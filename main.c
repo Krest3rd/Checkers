@@ -6,10 +6,10 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 //File handling - used later on to check if file exists (works on Windows)
- #include <io.h> // This is Winndows specific so I can't test for now
- #define F_OK 0
- #define access _access
- #pragma warning(disable:4996)
+//  #include <io.h> // This is Winndows specific so I can't test for now
+//  #define F_OK 0
+//  #define access _access
+//  #pragma warning(disable:4996)
 
 // --------------GENERAL--------------
 void must_init(bool test, const char* description)
@@ -114,36 +114,6 @@ void disp_post_draw()
     al_draw_scaled_bitmap(buffer, 0, 0, BUFFER_W, BUFFER_H, 0, 0, DISP_W, DISP_H, 0);
 
     al_flip_display();
-}
-
-//-----------File---------------
-void saveToFile(MAN board[8][8], int turn) {
-    //Saving the state of the game to gameSave.txt file
-    FILE* gameSave = fopen("gameSave.txt", "w");
-
-    //First line tells which turn it is
-    fprintf(gameSave, "%d\n", turn);
-
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            if (abs(board[i][j].color) == 1) {
-                //Format of the save file is {row} {column} {color} {isKing}
-                fprintf(gameSave, "%d %d %d %d\n", i, j, board[i][j].color, board[i][j].isKing);
-            }
-        }
-    }
-
-    fclose(gameSave);
-}
-
-//This function will remove the save file when the game is completed (when someone wins)
-void deleteFile() {
-    if (remove("gameSave.txt") == 0) {
-        printf("File deleted\n");
-    }
-    else {
-        printf("Error: Save File cannot be deleted\n");
-    }
 }
 
 //---------------CHECKERS----------
