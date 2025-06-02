@@ -75,8 +75,8 @@ void deleteFile() {
 }
 
 // ------------DISPLAY----------------
-#define BUFFER_W 640
-#define BUFFER_H 640
+#define BUFFER_W BOARD_WIDTH + BOARD_X
+#define BUFFER_H BOARD_HEIGHT + BOARD_Y
 
 #define DISP_SCALE 1
 #define DISP_W (BUFFER_W * DISP_SCALE)
@@ -353,6 +353,8 @@ void draw_board(MAN board[BOARD_SIZE][BOARD_SIZE],field selected) {
             int x = (col) * BOARD_SQUARE_SIZE;
             // printf("%d ",x);
             int y = row * BOARD_SQUARE_SIZE;
+            y = y + BOARD_Y; // Add the offset for the board
+            x = x + BOARD_X; // Add the offset for the board
             al_draw_filled_rectangle(x, y, x + BOARD_SQUARE_SIZE, y + BOARD_SQUARE_SIZE, al_map_rgb_f(0, 0, 0));
             if (board[row][col].color == WHITE) {
                 al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(200, 200, 200));
