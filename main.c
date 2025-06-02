@@ -21,24 +21,62 @@ void must_init(bool test, const char* description)
 }
 
 
-// bool collide(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
-// {
-//     if(ax1 > bx2) return false;
-//     if(ax2 < bx1) return false;
-//     if(ay1 > by2) return false;
-//     if(ay2 < by1) return false;
+//-----------File---------------
+void saveToFile(MAN board[BOARD_SIZE][BOARD_SIZE], int turn) {
+    //Saving the state of the game to gameSave.txt file
+    FILE* gameSave = fopen("gameSave.txt", "w");
 
-//     return true;
-// }
+    //First line tells which turn it is
+    fprintf(gameSave, "%d\n", turn);
 
-//int max(int a, int b) {
-//    if (a > b) return a;
-//    return b;
-//}
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            if (abs(board[i][j].color) == 1) {
+                //Format of the save file is {row} {column} {color} {isKing}
+                fprintf(gameSave, "%d %d %d %d\n", i, j, board[i][j].color, board[i][j].isKing);
+            }
+        }
+    }
+
+    fclose(gameSave);
+}
+
+int ReadBoard(MAN Board[BOARD_SIZE][BOARD_SIZE], int* turn) {
+    if (access("gameSave.txt", F_OK) == 0) {
+        FILE* gameSave = fopen("gameSave.txt", "r");
+        int row, col, color, isKing;
+
+        fscanf(gameSave, "%d", turn);
+
+        while (!feof(gameSave)) {
+            fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
+            if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE || (color != WHITE && color != BLACK && color != NONE) || (isKing != 0 && isKing != 1) || (color == NONE && isKing == 1)|| (col+row) % 2 != 1) {
+                // Invalid data in the save file ignore enrty
+                continue;
+            }
+            Board[row][col].color = color;
+            Board[row][col].isKing = isKing;
+        }
+        fclose(gameSave);
+
+        return true;
+    }
+    return false;
+}
+
+//This function will remove the save file when the game is completed (when someone wins)
+void deleteFile() {
+    if (remove("gameSave.txt") == 0) {
+        printf("File deleted\n");
+    }
+    else {
+        printf("Error: Save File cannot be deleted\n");
+    }
+}
 
 // ------------DISPLAY----------------
-#define BUFFER_W 640
-#define BUFFER_H 640
+#define BUFFER_W BOARD_WIDTH + BOARD_X
+#define BUFFER_H BOARD_HEIGHT + BOARD_Y
 
 #define DISP_SCALE 1
 #define DISP_W (BUFFER_W * DISP_SCALE)
@@ -110,36 +148,25 @@ void deleteFile() {
 
 //---------------CHECKERS----------
 
-int initBoard(MAN Board[8][8])
+int initBoard(MAN Board[BOARD_SIZE][BOARD_SIZE])
 {
     int turn;
     //First init
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
             Board[i][j].color = NONE;
         }
     }
 
     //Checks if file with game save exists
-    if (access("gameSave.txt", F_OK) == 0) {
-        FILE* gameSave = fopen("gameSave.txt", "r");
-        int row, col, color, isKing;
-
-        fscanf(gameSave, "%d", &turn);
-
-        while (!feof(gameSave)) {
-            fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
-            Board[row][col].color = color;
-            Board[row][col].isKing = isKing;
-        }
-        fclose(gameSave);
-
+    if (ReadBoard(Board, &turn) == true) {
+        // If file exists, load the game state
         return turn;
-    }
-    else {
+    } else {
+        // If file does not exist, initialize the new game board
 
         for (int i = 0;i < 3;i++) {
-            for (int j = 0;j < 8;j += 2) {
+            for (int j = 0;j < BOARD_SIZE;j += 2) {
                 if (i == 1) {
                     Board[i][j].color = WHITE;
                     Board[i][j].isKing = false;
@@ -164,7 +191,7 @@ int initBoard(MAN Board[8][8])
 
 
 // Checks if a move is valid
-int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
+int isValid(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2) {
     // Check if not OTB
     if (col1 < 0 || col2 < 0 || row1 < 0 || row2 < 0) {
         return false;
@@ -229,7 +256,7 @@ int isValid(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
 }
 
 // Move a pawn (no captures)
-int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
+int move(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2) {
     // Check if move is valid
     if (isValid(Board, Player, col1, row1, col2, row2) == 0) return false;
 
@@ -248,7 +275,7 @@ int move(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
 }
 
 // Capture a pawn
-int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2) {
+int capture(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2) {
     int capped_row = (row2 + row1) / 2;
     int capped_col = (col2 + col1) / 2;
 
@@ -275,7 +302,7 @@ int capture(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2)
 }
 
 // Checks if player can capture from a given position
-int captures(MAN Board[8][8], int Player, int col, int row) {
+int captures(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col, int row) {
     // Downright
     // Changed from .col and .row to .y and .x ~ Tomasz (Changed it back cos I can read this better))
     if (isValid(Board, Player, col, row, col + 2, row + 2) == 1) {
@@ -294,9 +321,9 @@ int captures(MAN Board[8][8], int Player, int col, int row) {
 }
 
 // Checks if player has any captures
-int hasCapt(MAN Board[8][8], int Player) {
-    for (int row = 0; row < 8; row++) {
-        for (int col = (row + 1) % 2; col < 8;col += 2) {
+int hasCapt(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player) {
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = (row + 1) % 2; col < BOARD_SIZE;col += 2) {
             if (Board[row][col].color == Player) {
                 if (captures(Board, Player, col, row) == 1) {
                     // Player has captures
@@ -309,11 +336,13 @@ int hasCapt(MAN Board[8][8], int Player) {
 }
 
 // Checks if player has any moves (including captures if captures resturns 2)
-int hasMoves(MAN Board[8][8], int Player) {
+int hasMoves(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player) {
     // If player has captures, he cannot move so send out that he has captures
     if (hasCapt(Board, Player)) return 2;
-    for (int row = 0; row < 8; row++) {
-        for (int col = (row + 1) % 2; col < 8;col += 2) {
+
+    // Check if player has normal moves
+    for (int row = 0; row < BOARD_SIZE; row++) {
+        for (int col = (row + 1) % 2; col < BOARD_SIZE;col += 2) {
             if (Board[row][col].color == Player) {
                 // Check if player can move by 1 (normal)
                 if (Board[row][col].isKing && isValid(Board, Player, col, row, col + 1, row + Player) || isValid(Board, Player, col, row, col - 1, row + Player)) {
@@ -330,25 +359,33 @@ int hasMoves(MAN Board[8][8], int Player) {
     return false;
 }
 
-void switchTurn(MAN Board[8][8],int* turn) {
-    printf("Switching turn from %d to %d\n", *turn, -1 * (*turn));
+void switchTurn(MAN Board[BOARD_SIZE][BOARD_SIZE],int* turn) {
     *turn = -1 * (*turn);
     if (hasMoves(Board, *turn) == 0) {
         // If player has no moves, he loses
-        printf("Player %d has no moves left, game over!\n", *turn);
+        switch (*turn) {
+            case WHITE:
+                printf("Player WHITE has no moves left, game over!\n");
+                break;
+            case BLACK:
+                printf("Player BLACK has no moves left, game over!\n");
+                break;
+        }
         deleteFile();
         exit(0);
     }
 }
 //-----------Drawing---------------
 
-void draw_board(MAN board[8][8],field selected) {
-    for (int row = 0; row < 8;row++) {
-        for (int col = (row + 1) % 2; col < 8;col += 2) {
-            int x = (col) * 80;
+void draw_board(MAN board[BOARD_SIZE][BOARD_SIZE],field selected) {
+    for (int row = 0; row < BOARD_SIZE;row++) {
+        for (int col = (row + 1) % 2; col < BOARD_SIZE;col += 2) {
+            int x = (col) * BOARD_SQUARE_SIZE;
             // printf("%d ",x);
-            int y = row * 80;
-            al_draw_filled_rectangle(x, y, x + 80, y + 80, al_map_rgb_f(0, 0, 0));
+            int y = row * BOARD_SQUARE_SIZE;
+            y = y + BOARD_Y; // Add the offset for the board
+            x = x + BOARD_X; // Add the offset for the board
+            al_draw_filled_rectangle(x, y, x + BOARD_SQUARE_SIZE, y + BOARD_SQUARE_SIZE, al_map_rgb_f(0, 0, 0));
             if (board[row][col].color == WHITE) {
                 al_draw_filled_circle(x + 40, y + 40, 35, al_map_rgb(200, 200, 200));
             }
@@ -374,7 +411,7 @@ void draw_board(MAN board[8][8],field selected) {
         }
         if (selected.col != -1 && selected.row != -1) {
             // Draw a rectangle around the selected field
-            al_draw_rectangle(selected.col * 80, selected.row * 80, selected.col * 80 + 80, selected.row * 80 + 80, al_map_rgb(255, 0, 0), 5);
+            al_draw_rectangle(selected.col * BOARD_SQUARE_SIZE, selected.row * BOARD_SQUARE_SIZE, selected.col * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE, selected.row * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE, al_map_rgb(255, 0, 0), 5);
         }
         // printf("\n");
     };
@@ -382,7 +419,7 @@ void draw_board(MAN board[8][8],field selected) {
 
 //-----------Input--------------
 
-int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int row2){
+int PerformMove(MAN Board[BOARD_SIZE][BOARD_SIZE], int Player, int col1, int row1, int col2, int row2){
     if (abs(col2 - col1) == 1 && abs(row2 - row1) == 1 && hasCapt(Board, Player) == 0 && move(Board, Player, col1, row1, col2, row2) == true ) {
         // Normal move
         return true;
@@ -417,7 +454,7 @@ int main()
 
     must_init(al_init_primitives_addon(), "primitives");
 
-    al_register_event_source(queue, al_get_keyboard_event_source());
+    // al_register_event_source(queue, al_get_keyboard_event_source()); Uncomment if you want to use keyboard events
     al_register_event_source(queue, al_get_mouse_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(timer));
@@ -426,7 +463,7 @@ int main()
     bool redraw = true;
     ALLEGRO_EVENT event;
 
-    MAN Board[8][8];
+    MAN Board[BOARD_SIZE][BOARD_SIZE];
     int turn = initBoard(Board);
     printf("Game initialized, turn: %d\n", turn);
     field selected;
@@ -457,13 +494,12 @@ int main()
             {
                 if (selected.col == -1 || selected.row == -1) {
                     // Select a field
-                    selected.col = event.mouse.x / 80;
-                    selected.row = event.mouse.y / 80;
+                    selected.col = event.mouse.x / BOARD_SQUARE_SIZE;
+                    selected.row = event.mouse.y / BOARD_SQUARE_SIZE;
                 } else {
-                    int col = event.mouse.x / 80;
-                    int row = event.mouse.y / 80;
+                    int col = event.mouse.x / BOARD_SQUARE_SIZE;
+                    int row = event.mouse.y / BOARD_SQUARE_SIZE;
                     int result = PerformMove(Board, turn, selected.col, selected.row, col, row);
-                    printf("Result of move: %d\n", result);
                     if (result != false) {
                     // If result is true, it was a normal move
                     // If result is 2, it was a capture
@@ -471,8 +507,8 @@ int main()
                             // Check if player has any captures left
                             if (captures(Board, turn,col, row)) {
                                 // Player has captures left, so he can continue capturing
-                                selected.col = event.mouse.x / 80;
-                                selected.row = event.mouse.y / 80;
+                                selected.col = event.mouse.x / BOARD_SQUARE_SIZE;
+                                selected.row = event.mouse.y / BOARD_SQUARE_SIZE;
                             } else {
                                 // Player has no captures left, so switch turn
                                 switchTurn(Board,&turn);
@@ -486,8 +522,8 @@ int main()
                             selected.row = -1;
                         }
                     } else {
-                        selected.col = event.mouse.x / 80;
-                        selected.row = event.mouse.y / 80;
+                        selected.col = event.mouse.x / BOARD_SQUARE_SIZE;
+                        selected.row = event.mouse.y / BOARD_SQUARE_SIZE;
                     }
                 }
             }
@@ -499,17 +535,13 @@ int main()
             }    
             break;
 
-        case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-
-            break;
-
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             done = true;
             break;
         }
 
         if (done)
-            break;
+            exit(0);
 
         if (redraw && al_is_event_queue_empty(queue))
         {
