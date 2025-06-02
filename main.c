@@ -21,20 +21,58 @@ void must_init(bool test, const char* description)
 }
 
 
-// bool collide(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
-// {
-//     if(ax1 > bx2) return false;
-//     if(ax2 < bx1) return false;
-//     if(ay1 > by2) return false;
-//     if(ay2 < by1) return false;
+//-----------File---------------
+void saveToFile(MAN board[8][8], int turn) {
+    //Saving the state of the game to gameSave.txt file
+    FILE* gameSave = fopen("gameSave.txt", "w");
 
-//     return true;
-// }
+    //First line tells which turn it is
+    fprintf(gameSave, "%d\n", turn);
 
-//int max(int a, int b) {
-//    if (a > b) return a;
-//    return b;
-//}
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+            if (abs(board[i][j].color) == 1) {
+                //Format of the save file is {row} {column} {color} {isKing}
+                fprintf(gameSave, "%d %d %d %d\n", i, j, board[i][j].color, board[i][j].isKing);
+            }
+        }
+    }
+
+    fclose(gameSave);
+}
+
+int ReadBoard(MAN Board[8][8], int* turn) {
+    if (access("gameSave.txt", F_OK) == 0) {
+        FILE* gameSave = fopen("gameSave.txt", "r");
+        int row, col, color, isKing;
+
+        fscanf(gameSave, "%d", turn);
+
+        while (!feof(gameSave)) {
+            fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
+            if (row < 0 || row >= 8 || col < 0 || col >= 8 || (color != WHITE && color != BLACK && color != NONE) || (isKing != 0 && isKing != 1) || (color == NONE && isKing == 1)|| (col+row) % 2 != 1) {
+                // Invalid data in the save file ignore enrty
+                continue;
+            }
+            Board[row][col].color = color;
+            Board[row][col].isKing = isKing;
+        }
+        fclose(gameSave);
+
+        return true;
+    }
+    return false;
+}
+
+//This function will remove the save file when the game is completed (when someone wins)
+void deleteFile() {
+    if (remove("gameSave.txt") == 0) {
+        printf("File deleted\n");
+    }
+    else {
+        printf("Error: Save File cannot be deleted\n");
+    }
+}
 
 // ------------DISPLAY----------------
 #define BUFFER_W 640
@@ -91,22 +129,11 @@ int initBoard(MAN Board[8][8])
     }
 
     //Checks if file with game save exists
-    if (access("gameSave.txt", F_OK) == 0) {
-        FILE* gameSave = fopen("gameSave.txt", "r");
-        int row, col, color, isKing;
-
-        fscanf(gameSave, "%d", &turn);
-
-        while (!feof(gameSave)) {
-            fscanf(gameSave, "%d %d %d %d", &row, &col, &color, &isKing);
-            Board[row][col].color = color;
-            Board[row][col].isKing = isKing;
-        }
-        fclose(gameSave);
-
+    if (ReadBoard(Board, &turn) == true) {
+        // If file exists, load the game state
         return turn;
-    }
-    else {
+    } else {
+        // If file does not exist, initialize the new game board
 
         for (int i = 0;i < 3;i++) {
             for (int j = 0;j < 8;j += 2) {
@@ -282,6 +309,8 @@ int hasCapt(MAN Board[8][8], int Player) {
 int hasMoves(MAN Board[8][8], int Player) {
     // If player has captures, he cannot move so send out that he has captures
     if (hasCapt(Board, Player)) return 2;
+
+    // Check if player has normal moves
     for (int row = 0; row < 8; row++) {
         for (int col = (row + 1) % 2; col < 8;col += 2) {
             if (Board[row][col].color == Player) {
@@ -301,11 +330,18 @@ int hasMoves(MAN Board[8][8], int Player) {
 }
 
 void switchTurn(MAN Board[8][8],int* turn) {
-    printf("Switching turn from %d to %d\n", *turn, -1 * (*turn));
     *turn = -1 * (*turn);
     if (hasMoves(Board, *turn) == 0) {
         // If player has no moves, he loses
-        printf("Player %d has no moves left, game over!\n", *turn);
+        switch (*turn) {
+            case WHITE:
+                printf("Player WHITE has no moves left, game over!\n");
+                break;
+            case BLACK:
+                printf("Player BLACK has no moves left, game over!\n");
+                break;
+        }
+        deleteFile();
         exit(0);
     }
 }
@@ -368,36 +404,6 @@ int PerformMove(MAN Board[8][8], int Player, int col1, int row1, int col2, int r
 
 }
 
-//-----------File---------------
-void saveToFile(MAN board[8][8], int turn) {
-    //Saving the state of the game to gameSave.txt file
-    FILE* gameSave = fopen("gameSave.txt", "w");
-
-    //First line tells which turn it is
-    fprintf(gameSave, "%d\n", turn);
-
-    for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < 8; j++) {
-            if (abs(board[i][j].color) == 1) {
-                //Format of the save file is {row} {column} {color} {isKing}
-                fprintf(gameSave, "%d %d %d %d\n", i, j, board[i][j].color, board[i][j].isKing);
-            }
-        }
-    }
-
-    fclose(gameSave);
-}
-
-//This function will remove the save file when the game is completed (when someone wins)
-void deleteFile() {
-    if (remove("gameSave.txt") == 0) {
-        printf("File deleted\n");
-    }
-    else {
-        printf("Error: Save File cannot be deleted\n");
-    }
-}
-
 //----------------MAIN-------------
 int main()
 {
@@ -416,7 +422,7 @@ int main()
 
     must_init(al_init_primitives_addon(), "primitives");
 
-    al_register_event_source(queue, al_get_keyboard_event_source());
+    // al_register_event_source(queue, al_get_keyboard_event_source()); Uncomment if you want to use keyboard events
     al_register_event_source(queue, al_get_mouse_event_source());
     al_register_event_source(queue, al_get_display_event_source(disp));
     al_register_event_source(queue, al_get_timer_event_source(timer));
@@ -462,7 +468,6 @@ int main()
                     int col = event.mouse.x / 80;
                     int row = event.mouse.y / 80;
                     int result = PerformMove(Board, turn, selected.col, selected.row, col, row);
-                    printf("Result of move: %d\n", result);
                     if (result != false) {
                     // If result is true, it was a normal move
                     // If result is 2, it was a capture
@@ -498,17 +503,13 @@ int main()
             }    
             break;
 
-        case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-
-            break;
-
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
             done = true;
             break;
         }
 
         if (done)
-            break;
+            exit(0);
 
         if (redraw && al_is_event_queue_empty(queue))
         {
