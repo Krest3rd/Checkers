@@ -379,9 +379,11 @@ void draw_board(MAN board[BOARD_SIZE][BOARD_SIZE],field selected) {
             }
 
         }
+        // printf("Selected field: %d %d\n", selected.col, selected.row);
         if (selected.col != -1 && selected.row != -1) {
+            // printf("x1: %d, y1: %d, x2: %d, y2: %d\n", (selected.col-BOARD_X) * BOARD_SQUARE_SIZE, (selected.row-BOARD_Y) * BOARD_SQUARE_SIZE, (selected.col-BOARD_X) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE, (selected.row-BOARD_Y) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE);
             // Draw a rectangle around the selected field
-            al_draw_rectangle(selected.col * BOARD_SQUARE_SIZE, selected.row * BOARD_SQUARE_SIZE, selected.col * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE, selected.row * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE, al_map_rgb(255, 0, 0), 5);
+            al_draw_rectangle((selected.col) * BOARD_SQUARE_SIZE + BOARD_X, (selected.row) * BOARD_SQUARE_SIZE+BOARD_Y, (selected.col) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE + BOARD_X, (selected.row) * BOARD_SQUARE_SIZE + BOARD_SQUARE_SIZE+BOARD_Y, al_map_rgb(255, 0, 0), 5);
         }
         // printf("\n");
     };
@@ -462,13 +464,15 @@ int main()
         case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
             if (event.mouse.button == 1) // Left mouse button
             {
+                // printf("Selected field: %d %d\n", (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE, (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE);
+                // printf("Selected field: %d %d\n", (event.mouse.x - BOARD_X), (event.mouse.y - BOARD_Y));
                 if (selected.col == -1 || selected.row == -1) {
                     // Select a field
-                    selected.col = event.mouse.x / BOARD_SQUARE_SIZE;
-                    selected.row = event.mouse.y / BOARD_SQUARE_SIZE;
+                    selected.col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
+                    selected.row = (event.mouse.y - BOARD_Y)/ BOARD_SQUARE_SIZE;
                 } else {
-                    int col = event.mouse.x / BOARD_SQUARE_SIZE;
-                    int row = event.mouse.y / BOARD_SQUARE_SIZE;
+                    int col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
+                    int row = (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE;
                     int result = PerformMove(Board, turn, selected.col, selected.row, col, row);
                     if (result != false) {
                     // If result is true, it was a normal move
@@ -477,8 +481,8 @@ int main()
                             // Check if player has any captures left
                             if (captures(Board, turn,col, row)) {
                                 // Player has captures left, so he can continue capturing
-                                selected.col = event.mouse.x / BOARD_SQUARE_SIZE;
-                                selected.row = event.mouse.y / BOARD_SQUARE_SIZE;
+                                selected.col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
+                                selected.row = (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE;
                             } else {
                                 // Player has no captures left, so switch turn
                                 switchTurn(Board,&turn);
@@ -492,8 +496,8 @@ int main()
                             selected.row = -1;
                         }
                     } else {
-                        selected.col = event.mouse.x / BOARD_SQUARE_SIZE;
-                        selected.row = event.mouse.y / BOARD_SQUARE_SIZE;
+                        selected.col = (event.mouse.x - BOARD_X) / BOARD_SQUARE_SIZE;
+                        selected.row = (event.mouse.y - BOARD_Y) / BOARD_SQUARE_SIZE;
                     }
                 }
             }
@@ -502,7 +506,8 @@ int main()
                 // Deselect the field
                 selected.col = -1;
                 selected.row = -1;
-            }    
+            }
+            // printf("Mouse clicked at: %d %d\n", event.mouse.x, event.mouse.y);   
             break;
 
         case ALLEGRO_EVENT_DISPLAY_CLOSE:
